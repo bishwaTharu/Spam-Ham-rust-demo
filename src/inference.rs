@@ -1,30 +1,39 @@
-use crate::preprocessing::clean_text;
+use crate::preprocessing::{clean_text, TfIdfVectorizer};
 use crate::training::{load_model, load_vectorizer};
 use linfa::prelude::*;
 use ndarray::Array1;
+use linfa_bayes::MultinomialNb;
+
+pub struct SpamClassifier {
+    model: MultinomialNb<f32, usize>,
+    vectorizer: TfIdfVectorizer,
+}
+
+impl SpamClassifier {
+    pub fn new(model_path: &str, vectorizer_path: &str) -> Result<Self, Box<dyn std::error::Error>> {
+        let model = load_model(model_path)?;
+        let vectorizer = load_vectorizer(vectorizer_path)?;
+        Ok(Self { model, vectorizer })
+    }
+
+    pub fn predict(&self, message: &str) -> Result<String, Box<dyn std::error::Error>> {
+        let cleaned = clean_text(message);
+        let messages = vec![cleaned];
+        let x = self.vectorizer.transform(&messages);
+        let dataset = Dataset::new(x, Array1::from_elem(1, 0usize));
+        let prediction = self.model.predict(&dataset);
+
+        if prediction[0] == 1 {
+            Ok("SPAM".to_string())
+        } else {
+            Ok("HAM".to_string())
+        }
+    }
+}
 
 pub fn predict_message(message: &str) -> Result<String, Box<dyn std::error::Error>> {
-    // 1. Load Model and Vectorizer
-    let model = load_model("model.bin")?;
-    let vectorizer = load_vectorizer("vectorizer.json")?;
-
-    // 2. Preprocess Message
-    let cleaned = clean_text(message);
-    let messages = vec![cleaned];
-
-    // 3. Vectorize
-    let x = vectorizer.transform(&messages);
-
-    // 4. Predict
-    let dataset = Dataset::new(x, Array1::from_elem(1, 0usize));
-    let prediction = model.predict(&dataset);
-
-    // 5. Interpret Result
-    let result = if prediction[0] == 1 {
-        "SPAM".to_string()
-    } else {
-        "HAM".to_string()
-    };
-
-    Ok(result)
+    // Legacy function for one-off prediction (reloads model every time)
+    // Kept for compatibility if needed, or better yet, use the new struct
+    let classifier = SpamClassifier::new("model.bin", "vectorizer.json")?;
+    classifier.predict(message)
 }

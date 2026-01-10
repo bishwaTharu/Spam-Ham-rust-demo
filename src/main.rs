@@ -1,14 +1,10 @@
-mod preprocessing;
-mod training;
-mod inference;
-mod api;
-
 use std::error::Error;
 use std::env;
 use ndarray::Array1;
-use crate::preprocessing::{load_data, preprocess_dataframe, TfIdfVectorizer};
-use crate::training::{split_data, train_model, evaluate_model, save_model, save_vectorizer};
-use crate::inference::predict_message;
+use ml_rust::preprocessing::{load_data, preprocess_dataframe, TfIdfVectorizer};
+use ml_rust::training::{split_data, train_model, evaluate_model, save_model, save_vectorizer};
+use ml_rust::inference::predict_message;
+use ml_rust::api;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
